@@ -1,0 +1,60 @@
+html {
+  font-family: 'Helvetica', 'sans-serif';
+}
+
+button {
+  padding: 10px;
+  border-radius: 0px;
+  border: 1px solid black;
+  margin: 10px;
+  min-width: 10vw;
+  
+}
+
+button:hover {
+  opacity: .5;
+  cursor: pointer;
+}
+
+#varWrapper {
+  width: 20vw;
+  height: 98vh;
+  border: 1px solid black;
+  margin-right: auto;
+  position: fixed;
+  padding-left: 20px;
+}
+
+#graphArea {
+  border: black;
+  height: 98vh;
+  width: 75vw;
+  border: 1px solid black;
+  margin-left: auto;
+}
+
+#grades {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 800px;
+  height: 600px;
+  border: 1px solid black;
+  visibility: hidden;
+  background-color: white;
+}
+
+.link {
+  stroke: rgba(200,200,200,.5);
+}
+
+.node text {
+stroke:#333;
+cursos:pointer;
+}
+
+.node circle{
+stroke:#fff;
+stroke-width:3px;
+fill:#555;
+}

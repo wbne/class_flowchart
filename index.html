@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://d3js.org/d3-selection-multi.v1.js"></script>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div id="varWrapper">
+      <p>Check the courses you've finished</p>
+      <p>Click on the course names to see the grade distribution</p>
+       <div id="variables">
+       </div>
+     </br>
+       <button onclick="network()">Create Graph</button>
+     </br>
+       <button onclick="clearVariables()">Clear Checkboxes</button>
+    </div>
+    <div id="graphArea"></div>
+    <div id="grades"></div>
+  </body>
+  <script type="text/javascript" src="network.js"></script>
+</html>
