@@ -100,7 +100,7 @@ function gradeGraph(name)
           .attr("y", function(d) { return y(d.count); })
           .attr("width", x.bandwidth())
           .attr("height", function(d) { return localHeight - y(d.count); })
-          .attr("fill", "#69b3a2")
+          .attr("fill", function(d, i){return "rgba("+Math.round(255-(1020/(i+4)))+","+Math.round(1020/(i+4))+",0,1)";})
   })
 }
 
@@ -177,6 +177,7 @@ d3.json("data.json", function(json) {
           .call(d3.drag()
                       .on("start", dragstarted)
                       .on("drag", dragged)
+                      .on("end", bounce)
               );
       node.append("circle")
           .attr("r", 10)
@@ -208,11 +209,16 @@ function ticked() {
 
 function dragstarted(d) {
         if (!d3.event.active) simulation.alphaTarget(0.3).restart()
-        d.fx = d.x;
-        d.fy = d.y;
+        d.x = d.x;
+        d.y = d.y;
     }
 
 function dragged(d) {
-    d.fx = d3.event.x;
-    d.fy = d3.event.y;
+  d.fx = d3.event.x;
+  d.fy = d3.event.y;
+}
+
+function bounce(d) {
+    d.fx = null
+    d.fy = null
 }

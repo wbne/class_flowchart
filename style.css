@@ -1,14 +1,16 @@
 html {
   font-family: 'Helvetica', 'sans-serif';
+  background-color: #293b5f;
 }
 
 button {
   padding: 10px;
   border-radius: 0px;
-  border: 1px solid black;
+  border: 0px solid black;
   margin: 10px;
   min-width: 10vw;
-  
+  background-color: #47597e;
+  color: white;
 }
 
 button:hover {
@@ -16,13 +18,18 @@ button:hover {
   cursor: pointer;
 }
 
+#buttonWrapper {
+  display: grid;
+  margin-left: -20px;
+}
+
 #varWrapper {
   width: 20vw;
-  height: 98vh;
   border: 1px solid black;
   margin-right: auto;
-  position: fixed;
   padding-left: 20px;
+  background-color: #dbe6fd;
+  margin-top: 10px;
 }
 
 #graphArea {
@@ -30,18 +37,32 @@ button:hover {
   height: 98vh;
   width: 75vw;
   border: 1px solid black;
-  margin-left: auto;
+  margin-left: 23vw;
+  position: fixed;
+  top: 10px;
+  background-color: white;
 }
 
 #grades {
   position: absolute;
-  right: 10px;
-  top: 10px;
+  right: 14vw;
+  top: 20vh;
   width: 800px;
   height: 600px;
-  border: 1px solid black;
+  border: 1px solid #47597e;
+  border-radius: 10px;
   visibility: hidden;
-  background-color: white;
+  background-color: rgba(239, 251, 255, .9);
+}
+
+#varOption:hover {
+  cursor: pointer;
+  opacity: .5;
+}
+
+.checkLabel:hover {
+  cursor: pointer;
+  opacity: .5;
 }
 
 .link {
