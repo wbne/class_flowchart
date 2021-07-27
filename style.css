@@ -52,7 +52,14 @@ button:hover {
   border: 1px solid #47597e;
   border-radius: 10px;
   visibility: hidden;
+  flex-wrap: wrap;
   background-color: rgba(239, 251, 255, .9);
+}
+
+#card {
+  min-width: 10vw;
+  padding-left: 10px;
+  margin: 10px;
 }
 
 #varOption:hover {
