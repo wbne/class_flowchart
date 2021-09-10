@@ -1,8 +1,28 @@
-var file, json, nodes, links
-var plan
-var selectedData = []
-var maxClasses = 5
+//Data related to the file.
+var file, json, courseNames, links
+//The generated semesterly schedule
+var plan = []
+//The user's entire degree plan INCLUDING core courses later on.
+var degreePlan = []
+//Courses that can be taken this semester
+var buffer = []
+//Courses that have been completed prior to the schedule generation.
+var preCompleted = []
 
+//ALEKS score for reasons
+//it won't be a boolean but atm I'm lazy
+var aleks = true
+//similar dealio. Probably have this implemented
+var juniorStanding = true
+var currentNumber = 0
+
+//This constant will be pulled from another source in Nebula Web
+const creditHourCap = 16
+//This will be used when not enough classes are present in a sem
+const creditHourMin = 12
+
+// The start of the file. Loads the course infos into the website and executes the rest of the functions.
+// In Nebula Web, the Course Degree Plan will also be pulled from an external source.
 function loadFile() {
   clearGraphs()
   var xhttp = new XMLHttpRequest();
@@ -10,150 +30,224 @@ function loadFile() {
     if (this.readyState == 4 && this.status == 200) {
       file = this
       json = JSON.parse(file.response)
-      nodes = json.nodes
-      links = json.links
+      courseNames = Object.keys(json)
+	//This is the part where I'm supposed to load in the degree plan
+	//However this is just a personal project so that is skipped
+	getCompleted()
+	initialize()
       breadthFirst()
       showSchedule()
     }
   };
-  xhttp.open("GET", "./data.json", true);
+  xhttp.open("GET", "./course_catalog2020.json", true);
   xhttp.send();
 }
 
-//TODO: Make a better iterator than going from node 0 to 32 or whatever
-//TODO: Have the list of future courses also be pulled from the newly added items
-//      Probably push those classes to the LIST
+// Finds courses that can be taken immediately.
+// Takes into account previously completed courses.
+// For Nebula Web, I would have to account for transfer courses, AP credits, and previously completed courses.
+// Also core requirement courses but I think those will go into a separate section and will fill in less busy semesters.
+function initialize() {
+	currentNumber = 0
+	plan = []
+	buffer = []
+	for(i = 0; i < degreePlan.length; i++) {
+		const index = courseNames.indexOf(degreePlan[i])
+		const course = json[courseNames[index]]
+		var thing = true
+		for(j = 0; j < preCompleted.length; j++) {
+			if(preCompleted[j] == courseNames[index]){
+				thing = false
+			}
+		}
+		if(thing && checkPrereqs(courseNames[index])) {
+			buffer.push(courseNames[index])
+		}
+	}
 
-function breadthFirst() {
-  const startNode = 0
-  const endNode = 32
-  var currentNode = startNode
-  plan = []
-  var nextSemester = []
-  var addedCourses = false
-  var list = [] //consists of links so node index + 1
+	console.log([...plan])
+	//now we add courses from the buffer to the degree plan
+	var semester = []
+	var sum = 0 
+	var classCount = 0
+	for(i = 0; i < buffer.length; i++) {
+		var temp = sum + Number(json[buffer[i]].hours)
+		if(temp <= creditHourCap) {
+			semester.push(buffer[i])
+			sum = temp
+			classCount++
+			preCompleted.push(buffer[i])
+		}
+		else {
+			sum = 0
+			plan.push([...semester])
+			i = 0
+			buffer.splice(0, classCount)
+			classCount = 0
+			semester = []
+		}
+	}
 
-  var completed = getCompleted()
-
-  //creates a first year semester plan by checking to see if there are prereqs
-  for(i = 0; i < nodes.length; i++) {
-    var good = true
-    for(j = 0; j < links.length; j++) {
-      //if there are prereqs then it is no good
-      //it also has to take into account previously completed courses
-      if(links[j].target == i + 1 && selectedData.indexOf(links[j].source - 1) == -1) {
-        good = false
-      }
-      //if the node was found in the "completed" set of checkboxes
-      if(selectedData.indexOf(i) != -1) {
-        good = false
-      }
-    }
-    //if it is good then we add the course to our semester
-    if(good) {
-      nextSemester.push(nodes[i].name)
-      //if the semester is full then we push it to next semester
-      if(nextSemester.length >= maxClasses) {
-        plan.push(nextSemester)
-        nextSemester = []
-      }
-    }
-  }
-
-
-  for(test = 0; test < 4; test++){
-    if(plan.length != 0) {
-      for(i = 0; i < plan[plan.length - 1].length; i++) {
-        for(j = 0; j < links.length; j++){
-          if(nodes[links[j].source - 1] === plan[plan.length - 1][i]) {
-            list.push(links[j].target)
-          }
-        }
-      }
-    }
-
-  for(currentNode = startNode; currentNode < endNode; currentNode++) {
-    //var list = []
-
-    //adds additional potentially takeable courses from the completed courses boxes
-    if(!addedCourses) {
-      for(j = 0; j < selectedData.length; j++) {
-        for(k = 0; k < links.length; k++) {
-          if(links[k].source == selectedData[j] + 1) {
-            list.push(links[j].target)
-          }
-        }
-      }
-      addedCourses = true
-    }
-
-    for(j = 0; j < links.length; j++) {
-      //find all the courses that have currentNode as the prereq and add it to a list
-      //then run through the list and see if all the prereqs are met
-      //if yes then add it to the nextSemester array
-      //if not then toss it out
-      if(links[j].source == currentNode + 1) {
-        list.push(links[j].target)
-      }
-    }
-    console.log(list)
-    //for all the upper level classes that have at least one prereq completed
-    for(j = 0; j < list.length; j++) {
-      var good = true
-      //now we find all the required prereqs for a specific course
-      for(k = 0; k < links.length; k++) {
-        //check to see if the specific edge connects to the upper level course
-        if(links[k].target == list[j]) {
-          var found = false
-          //if it does, we check to see if the prereq is in our plan
-          for(l = 0; l < plan.length; l++) {
-            //if the plan has that specific prereq, then we're good
-            if(plan[l].indexOf(nodes[links[k].source - 1].name) != -1 || selectedData.indexOf(links[k].source - 1) != -1) {
-              found = true
-            }
-            //incase the program tries adding a cousre the user has already completed
-            if(selectedData.indexOf(links[k].target - 1) != -1) {
-              found = false
-            }
-          }
-          //if the plan doesn't have it, then the upper level course won't be added
-          if(!found) {
-            good = false
-          }
-        }
-      }
-      if(good) {
-        var found = false
-        //this makes sure no duplicate courses will be added to the overall plan
-        for(l = 0; l < plan.length; l++) {
-          if(plan[l].indexOf(nodes[list[j] - 1].name) != -1) {
-            found = true
-          }
-        }
-        //makes sure no duplicate courses are added to the semester
-        if(nextSemester.indexOf(nodes[list[j] - 1].name) != -1) {
-          found = true
-        }
-        //if this is a unique course, add it
-        if(!found) {
-          nextSemester.push(nodes[list[j] - 1].name)
-        }
-      }
-      //if the class size for the semester hits the limit, we push it and start a new semester
-      if(nextSemester.length >= maxClasses) {
-        plan.push(nextSemester)
-        nextSemester = []
-      }
-    }
-  }
-  //makes sure that any last classes are pushed assuming there are some
-  if(nextSemester.length != 0) {
-    plan.push(nextSemester)
-    nextSemester = []
-  }
+	//in case there isn't enough courses to fill a semester but enough to not be ignored
+	if(sum > creditHourMin) {
+		plan.push([...semester])
+		for(i = 0; i < semester.length; i++) {
+			preCompleted.push(buffer[i])
+		}
+		buffer = []
+	}
 }
 
-  console.log(plan)
+function checkPrereqs(name) {
+	//preCompleted && selectedData
+	var course = json[name]
+	var prereqs = []
+	var coreqs = []
+	//Either gets the prereqs or adds the course to the potential 1st semester courses.
+	if(course.prerequisites.length > 0) {
+		//console.log(course.prerequisites)
+		for(j = 0; j < course.prerequisites.length; j++) {
+			var splitCourses = course.prerequisites[j].split(" and ")
+			if(course.prerequisites[j].includes("Corequisite")) {
+				coreqs = splitCourses
+			}
+			else if(course.prerequisites[j].includes("Prerequisite")) {
+				prereqs = splitCourses	
+			}
+		}
+		// If there are prereqs, check if they have been met by checking the preCompleted array.
+		// This array will include AP, Dual Credit, and other sources.
+		// This is NOT the courses taken at UTD.
+		var preReqCount = 0
+		for(j = 0; j < prereqs.length; j++) {
+			for(l = 0; l < preCompleted.length; l++ ) {
+				if(prereqs[j].includes(preCompleted[l])) {
+					preReqCount++
+					break
+				}
+				//this is because they changed it from cs 3340 to cs 2340
+				else if(preCompleted[l] == "CS 2340" && prereqs[j].includes("CS 3340")) {
+					preReqCount++
+					break
+				}
+			}
+			if(prereqs[j].includes("ALEKS") && aleks) {
+				preReqCount++
+			}
+			if(name == "ECS 3390" && currentNumber > 24) {
+				//this is for corny hard coding
+				return true
+			}
+			if(name == "CS 4485" && currentNumber > 24) {
+				return true
+			}
+		}
+		var coReqCount = 0
+		for(j = 0; j < coreqs.length; j++) {
+			for(l = 0; l < preCompleted.length; l++ ) {
+				if(coreqs[j].includes(preCompleted[l])) {
+					coReqCount++
+				}
+			}
+		}
+		if(coReqCount >= coreqs.length && preReqCount >= prereqs.length) {
+			return true	
+		}
+	
+		var coReqNames = []
+		for(j = 0; j < coreqs.length; j++) {
+			for(k = 0; k < degreePlan.length; k++) {
+				//this makes it so OR courses are treated as AND...
+				//if this is an issue I'll have to bug fix
+				if(coreqs[j].includes(degreePlan[k])) {
+					coReqNames.push(degreePlan[k])
+				}	
+			}
+		}
+		var coReqs = true
+		//temporary buffer that *pretends* that the course has been taken
+		preCompleted.push(name)
+		for(j = 0; j < coReqNames.length; j++) {
+			coReqs = coReqs && checkPrereqs(coReqNames[j])
+		}
+		preCompleted.splice(preCompleted.length - 1, 1)
+		
+		// Indicating possible courses that are takeable
+		if(coReqs) {
+			if(preReqCount == prereqs.length) {
+				return true
+			}
+		}
+	}
+	else {
+		return true
+	}
+	
+	return false
+}
+
+function breadthFirst() {
+	var daCount = 0
+	var sanity = 0
+	while(daCount <= degreePlan.length && sanity < 10) {
+		daCount = 0
+		sanity++
+	for(i = 0; i < degreePlan.length; i++) {
+		const index = courseNames.indexOf(degreePlan[i])
+		const course = json[courseNames[index]]
+		var thing = true
+		for(j = 0; j < preCompleted.length; j++) {
+			if(preCompleted[j] == courseNames[index]){
+				thing = false
+			}
+		}
+		if(thing && checkPrereqs(courseNames[index])) {
+			if(buffer.indexOf(courseNames[index]) == -1) {
+				buffer.push(courseNames[index])
+			}
+		}
+	}
+
+
+	//now we add courses from the buffer to the degree plan
+	var semester = []
+	var sum = 0 
+	var classCount = 0
+	for(i = 0; i < buffer.length; i++) {
+		var temp = sum + Number(json[buffer[i]].hours)
+		if(temp <= creditHourCap) {
+			semester.push(buffer[i])
+			sum += Number(json[buffer[i]].hours)
+			classCount++
+			preCompleted.push(buffer[i])
+		}
+		else {
+			sum = 0
+			plan.push(semester)
+			i = 0
+			buffer.splice(0, classCount)
+			classCount = 0
+			semester = []
+		}
+	}
+
+	//in case there isn't enough courses to fill a semester but enough to not be ignored
+	if(sum > creditHourMin) {
+		plan.push([...semester])
+		for(i = 0; i < semester.length; i++) {
+			preCompleted.push(buffer[i])
+		}
+		buffer = []
+	}
+		
+		//calcs da count
+		for(i = 0; i < plan.length; i++) {
+			daCount += plan[i].length
+		}
+		currentNumber = Math.max(currentNumber, daCount)	
+	}	
+	plan.push([...buffer])
+	console.log(daCount)
 }
 
 function showSchedule() {
@@ -190,53 +284,18 @@ function showSchedule() {
   body.append(container)
 }
 
-function depthFirst() {
-  //The start and ending nodes
-  //Note: Link source and target ids start at 1 while Nodes start at 0
-  const startNode = 30
-  const endNode = 0
-  var currentNode = 31
-  var tree = [[nodes[currentNode - 1].name]]
-  var potato = []
-  var queue = [-1] //Array of group IDs
-
-  //add getCompleted() later
-
-  var finished = false
-  while(!finished) {
-    for(i = 0; i < links.length; i++) {
-      if(links[i].target == currentNode) {
-        queue.push(links[i].source)
-        potato.push(nodes[links[i].source - 1].name)
-      }
-    }
-    queue.push(-1)
-
-    currentNode = queue[0]
-    queue.splice(0, 1)
-
-    if(currentNode == -1) {
-      if(potato.length != 0) {
-        tree.push(potato)
-        potato = []
-      }
-    }
-
-    if(currentNode == 3) { //should be calc 1
-      break;
-    }
-
-  }
-}
-
 function getCompleted() {
   //Indices are all the same since they all come from the same json file
   selectedData = []
+  preCompleted = []
+  degreePlan = []
   cbs = document.querySelectorAll('input');
+  courses = document.getElementsByClassName('checkLabel')
             for (i = 0; i < cbs.length; i++)
             {
                 if (cbs[i].checked)
-                {selectedData.push(i)}
+                {preCompleted.push(courses[i].textContent)}
+		//This is my hacky way of creating a "degree plan"
+		degreePlan.push(courses[i].textContent)
             }
-
 }

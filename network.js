@@ -42,7 +42,7 @@ function createVariables(){
 
 function gradeGraph(name)
 {
-  courseName = name.target.textContent
+  courseName = name.target.textContent.replace(" ", "")
   document.getElementById("grades").style.visibility = "visible"
   var localHeight = 600 - margin.bottom - margin.top;
   var localWidth = 800 - margin.left - margin.right;
